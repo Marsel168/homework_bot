@@ -5,7 +5,6 @@ import time
 import requests
 import telegram
 from dotenv import load_dotenv
-from exceptions import HomeworkIsNotList, HomeworkIsNotDict
 
 load_dotenv()
 
@@ -47,7 +46,7 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
     try:
         response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-        logger.info(f'Отправлен запрос к API')
+        logger.info('Отправлен запрос к API')
     except Exception as error:
         logger.error(f'Ошибка при запросе к основному API: {error}')
 
@@ -58,9 +57,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """
-    Проверяет ответ API на корректность.
-    """
+    """Проверяет ответ API на корректность."""
     if not isinstance(response, dict):
         raise TypeError('response не список')
     homeworks = response.get('homeworks')
@@ -74,6 +71,7 @@ def check_response(response):
 def parse_status(homework):
     """
     Извлекает из информации о конкретной домашней работе статус этой работы.
+
     """
     if not homework:
         raise Exception('Домашняя работа не найдена')
@@ -90,10 +88,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """
-    Проверяет доступность переменных окружения,
-    которые необходимы для работы программы.
-    """
+    """Проверяет доступность переменных окружения."""
     if PRACTICUM_TOKEN is None:
         logger.critical("Отсутствует обязательная переменная окружения:"
                         " 'PRACTICUM_TOKEN'")
