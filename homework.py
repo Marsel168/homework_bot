@@ -69,10 +69,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """
-    Извлекает из информации о конкретной домашней работе статус этой работы.
-
-    """
+    """Получает статус домашней работы."""
     if not homework:
         raise Exception('Домашняя работа не найдена')
     homework_name = homework.get('homework_name')
