@@ -33,7 +33,8 @@ def send_message(bot, message):
         logging.info('Начата отправка сообщения')
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logging.info('Сообщения успешно отправлено')
-    except TelegramError:
+    except TelegramError as error:
+        logging.error(error)
         raise TelegramError('Cбой при отправке сообщения в Telegram')
 
 
@@ -58,6 +59,7 @@ def get_api_answer(current_timestamp):
             )
         return response.json()
     except GetAPIError as error:
+        logging.error(error)
         raise GetAPIError(f'Ошибка при запросе к основному API: {error}')
 
 
@@ -129,12 +131,8 @@ def main():
         except KeyError as error:
             logging.error(error)
         except ValueError as error:
-            logging.critical(error)
+            logging.error(error)
         except TypeError as error:
-            logging.error(error)
-        except GetAPIError as error:
-            logging.error(error)
-        except TelegramError as error:
             logging.error(error)
         except WrongAPIResponseCodeError as error:
             logging.error(error)
