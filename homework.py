@@ -54,9 +54,10 @@ def get_api_answer(current_timestamp):
         response = requests.get(**request_params)
         logging.info('Отправлен запрос к API')
         if response.status_code != HTTPStatus.OK:
-            raise WrongAPIResponseCodeError(
-                f'Ответ сервера не является успешным: {response.status_code}'
-            )
+            error = (f'Ответ сервера не является успешным: '
+                     f'{response.status_code}')
+            logging.error(error)
+            raise WrongAPIResponseCodeError(error)
         return response.json()
     except GetAPIError as error:
         logging.error(error)
@@ -133,8 +134,6 @@ def main():
         except ValueError as error:
             logging.error(error)
         except TypeError as error:
-            logging.error(error)
-        except WrongAPIResponseCodeError as error:
             logging.error(error)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
