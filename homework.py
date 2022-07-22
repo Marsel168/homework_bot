@@ -6,7 +6,6 @@ from http import HTTPStatus
 
 import requests
 import telegram
-from telegram.error import TelegramError
 from dotenv import load_dotenv
 from exceptions import (WrongAPIResponseCodeError,
                         ConnectionServerError,
