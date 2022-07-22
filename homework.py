@@ -8,7 +8,9 @@ import requests
 import telegram
 from telegram.error import TelegramError
 from dotenv import load_dotenv
-from exceptions import GetAPIError, WrongAPIResponseCodeError
+from exceptions import (WrongAPIResponseCodeError,
+                        ConnectionServerError,
+                        NotForSendingError)
 
 load_dotenv()
 
@@ -32,10 +34,10 @@ def send_message(bot, message):
     try:
         logging.info('Начата отправка сообщения')
         bot.send_message(TELEGRAM_CHAT_ID, message)
+    except NotForSendingError:
+        raise NotForSendingError('Cбой при отправке сообщения в Telegram')
+    else:
         logging.info('Сообщения успешно отправлено')
-    except TelegramError as error:
-        logging.error(error)
-        raise TelegramError('Cбой при отправке сообщения в Telegram')
 
 
 def get_api_answer(current_timestamp):
@@ -50,18 +52,22 @@ def get_api_answer(current_timestamp):
         'params': {'from_date': timestamp}
     }
     try:
-        logging.info('Запрос к API')
+        logging.info(
+            (
+                'Начинаем подключение к эндпоинту {url}, с параметрами '
+                'headers = {headers}; params= {params}.'
+            ).format(**request_params)
+        )
         response = requests.get(**request_params)
-        logging.info('Отправлен запрос к API')
         if response.status_code != HTTPStatus.OK:
             error = (f'Ответ сервера не является успешным: '
                      f'{response.status_code}')
-            logging.error(error)
             raise WrongAPIResponseCodeError(error)
         return response.json()
-    except GetAPIError as error:
-        logging.error(error)
-        raise GetAPIError(f'Ошибка при запросе к основному API: {error}')
+    except ConnectionServerError as error:
+        raise ConnectionServerError(
+            f'Ошибка при запросе к основному API: {error}'
+        )
 
 
 def check_response(response):
@@ -71,14 +77,14 @@ def check_response(response):
         raise TypeError('response не словарь')
     homeworks = response.get('homeworks')
     if not isinstance(homeworks, list):
-        raise TypeError(
+        raise NotForSendingError(
             f'В ответе от API под ключом "homeworks" пришел не список. '
             f'homeworks = {homeworks}.'
         )
     if 'homeworks' not in response:
-        raise KeyError('Ключ homeworks отсутствует в словаре')
+        raise NotForSendingError('Ключ homeworks отсутствует в словаре')
     if 'current_date' not in response:
-        raise KeyError('Ключ current_date отсутствует в словаре')
+        raise NotForSendingError('Ключ current_date отсутствует в словаре')
     return homeworks
 
 
@@ -89,12 +95,12 @@ def parse_status(homework):
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
     if homework_status not in HOMEWORK_VERDICTS:
-        raise KeyError(
+        raise NotForSendingError(
             f'Отсутствует статус {homework_name} в словаре HOMEWORK_VERDICTS.'
         )
     verdict = HOMEWORK_VERDICTS.get(homework_status)
     if not verdict:
-        raise ValueError('Статус домашней работы неизвестен')
+        raise NotForSendingError('Статус домашней работы неизвестен')
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -106,8 +112,9 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logging.critical('Отсутствуют токены')
-        sys.exit('Отсутствуют токены')
+        error_tokens = 'Отсутствуют токены'
+        logging.critical(error_tokens)
+        sys.exit(error_tokens)
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     current_report = {'name': '', 'message': ''}
@@ -128,14 +135,14 @@ def main():
                 send_message(bot, message)
                 prev_report = current_report.copy()
             else:
-                logging.info('Нет новых статусов')
-        except KeyError as error:
+                logging.debug('Нет новых статусов')
+        except (NotForSendingError, TypeError, KeyError) as error:
             logging.error(error)
-        except ValueError as error:
-            logging.error(error)
-        except TypeError as error:
-            logging.error(error)
-        except Exception as error:
+        except (
+            Exception,
+            ConnectionServerError,
+            WrongAPIResponseCodeError
+        ) as error:
             message = f'Сбой в работе программы: {error}'
             current_report['message'] = message
             logging.error(message, exc_info=True)

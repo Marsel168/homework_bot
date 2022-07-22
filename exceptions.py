@@ -2,5 +2,9 @@ class WrongAPIResponseCodeError(Exception):
     pass
 
 
-class GetAPIError(Exception):
+class ConnectionServerError(Exception):
+    pass
+
+
+class NotForSendingError(Exception):
     pass
